@@ -39,6 +39,7 @@ class ImageReceiver:
             dpg.add_image("texture_tag")
             dpg.add_text("INFO\nNo Detection", tag="Bottom_Text_1", show=True)
             dpg.add_text("LAST DETECTION\nNo Detection", tag="Bottom_Text_2", show=True)
+            dpg.add_text("DETECTED CLASSES\nNo Detection", tag="Bottom_Text_3", show=True)
             dpg.add_text("HOUSE STATUS\n", tag="Status_Text", show=True)
             dpg.add_text("CONNECTION STATUS\n", tag="Connection_Status_Text", show=True)
         dpg.create_viewport(title='Server Camera Feed', width=800, height=600)
@@ -81,6 +82,7 @@ class ImageReceiver:
         last_detection = "No Detection"
         data = b""
         payload_size = struct.calcsize("L")
+    
         try:
             while self.is_running:
                 while len(data) < payload_size:
@@ -88,37 +90,46 @@ class ImageReceiver:
                     if not packet:
                         raise ConnectionResetError("Client disconnected")
                     data += packet
-
+    
                 packed_msg_size = data[:payload_size]
                 data = data[payload_size:]
                 msg_size = struct.unpack("L", packed_msg_size)[0]
-
+    
                 while len(data) < msg_size:
                     data += self.conn.recv(4096)
-
+    
                 frame_data = data[:msg_size]
                 data = data[msg_size:]
-
+    
                 frame = pickle.loads(frame_data)
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 detection = ai.pred(frame_rgb)
-
+                detected_classes = set()
+    
                 if detection:
-                    x1, y1, x2, y2, class_name = detection
-                    cv2.rectangle(frame_rgb, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    dpg.configure_item("Bottom_Text_1", default_value=f"INFO\nPosition: ({x1}, {y1}, {x2}, {y2})\nClass: {class_name}")
-                    dpg.configure_item("Bottom_Text_2", default_value=f"LAST DETECTION\nPosition: ({x1}, {y1}, {x2}, {y2})\nClass: {class_name}")
-                    last_detection = f"Position: ({x1}, {y1}, {x2}, {y2})\nClass: {class_name}"
+                    for x1, y1, x2, y2, class_name in detection:
+                        # Draw bounding box
+                        cv2.rectangle(frame_rgb, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        detected_classes.add(class_name)
+                        last_detection = f"Position: ({x1}, {y1}, {x2}, {y2})\nClass: {class_name}"
+                        
+                        # Update GUI items
+                        dpg.configure_item("Bottom_Text_1", default_value=f"INFO\nPosition: ({x1}, {y1}, {x2}, {y2})\nClass: {class_name}")
+                        dpg.configure_item("Bottom_Text_2", default_value=f"LAST DETECTION\n{last_detection}")
                     
-                    # Update house status based on detected class_name
-                    self.house_status([class_name])
+                    detected_classes_str = ', '.join(detected_classes)
+                    dpg.configure_item("Bottom_Text_3", default_value=f"DETECTED CLASSES\n{detected_classes_str}")
+    
+                    # Update house status based on detected class names
+                    self.house_status(list(detected_classes))
                 else:
                     dpg.configure_item("Bottom_Text_1", default_value="INFO\nNo Detection")
                     dpg.configure_item("Bottom_Text_2", default_value=f"LAST DETECTION\n{last_detection}")
-
+                    dpg.configure_item("Bottom_Text_3", default_value="DETECTED CLASSES\nNo Detection")
+    
                 frame_float = np.asfarray(frame_rgb, dtype='f') / 255.0
                 dpg.set_value("texture_tag", frame_float.flatten())
-
+    
         except (socket.error, ConnectionResetError) as e:
             self.status("Client disconnected. Waiting for reconnection...")
             self.blank()
@@ -129,6 +140,7 @@ class ImageReceiver:
         dpg.set_value("texture_tag", blank_image.flatten())
         dpg.configure_item("Bottom_Text_1", default_value="INFO\nNo Detection")
         dpg.configure_item("Bottom_Text_2", default_value="LAST DETECTION\nNo Detection")
+        dpg.configure_item("Bottom_Text_3", default_value="DETECTED CLASSES\nNo Detection")
 
     def cleanup_connection(self):
         if self.conn:
