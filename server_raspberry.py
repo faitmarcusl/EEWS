@@ -6,7 +6,7 @@ import numpy as np
 import time
 import struct
 import pickle
-import ainew
+import ai_raspberry as ainew
 
 class ImageReceiver:
     def __init__(self, host, port, mode=0):
