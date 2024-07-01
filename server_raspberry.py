@@ -4,6 +4,8 @@ import cv2
 import dearpygui.dearpygui as dpg
 import numpy as np
 import time
+import struct
+import pickle
 import ainew
 
 class ImageReceiver:
@@ -26,9 +28,9 @@ class ImageReceiver:
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
         self.is_running = True
-        
-        self.accept_connections()
         self.status("Server started. Waiting for connection...")
+
+        self.accept_connections()
 
     def setup_gui(self):
         dpg.create_context()
@@ -42,6 +44,7 @@ class ImageReceiver:
             dpg.add_text("DETECTED CLASSES\nNo Detection", tag="Bottom_Text_3", show=True)
             dpg.add_text("HOUSE STATUS\n", tag="Status_Text", show=True)
             dpg.add_text("CONNECTION STATUS\n", tag="Connection_Status_Text", show=True)
+            dpg.add_text("MODE\nResidential", tag="Mode_Text", show=True)  # Added mode display
         dpg.create_viewport(title='Server Camera Feed', width=800, height=600)
         dpg.setup_dearpygui()
         dpg.show_viewport()
@@ -128,10 +131,10 @@ class ImageReceiver:
 
         except (socket.error, ConnectionResetError) as e:
             self.status("Client disconnected. Waiting for reconnection...")
-            self.set_blank_viewport()
+            self.blank_screen()
             self.cleanup_connection()
 
-    def set_blank_viewport(self):
+    def blank_screen(self):
         blank_image = np.zeros((480, 640, 3), dtype=np.float32)
         dpg.set_value("texture_tag", blank_image.flatten())
         dpg.configure_item("Bottom_Text_1", default_value="INFO\nNo Detection")
@@ -146,6 +149,13 @@ class ImageReceiver:
         self.status("Waiting for new connection...")
         self.accept_connections()
 
+    def change_mode(self, new_mode):
+        self.mode = new_mode
+        ainew.set_mode(new_mode)
+        mode_name = "Residential" if new_mode == 0 else "Commercial"
+        dpg.configure_item("Mode_Text", default_value=f"MODE\n{mode_name}")
+        self.status(f"Mode changed to {mode_name}")
+
 if __name__ == "__main__":
-    receiver = ImageReceiver(host='0.0.0.0', port=8000, mode=0)  # Set initial mode to residential
+    receiver = ImageReceiver(host='0.0.0.0', port=8000, mode=0)  # Listen on all available IP addresses on port 8000
     receiver.start()
