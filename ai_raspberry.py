@@ -4,7 +4,7 @@ from roboflow import Roboflow
 # Configuration
 API_KEY = "P5W2awqHgQZgmiKPJIu7"
 PROJECTS_AND_VERSIONS = [
-    {"project_name": "masid", "version_number": 3},  # Residential mode model
+    {"project_name": "masid", "version_number": 1},  # Residential mode model
     {"project_name": "people-detection-o4rdr", "version_number": 7},  # Commercial mode model 1
     {"project_name": "gempa", "version_number": 11},  # Commercial mode model 2
 ]
@@ -27,7 +27,7 @@ def set_mode(new_mode):
     global mode
     mode = new_mode
 
-def pred_multiple(image):
+def pred(image):
     """
     Perform prediction on the given image using the appropriate model based on the mode.
 
