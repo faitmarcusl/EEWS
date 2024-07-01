@@ -2,7 +2,7 @@ import socket
 import cv2
 import numpy as np
 
-# Raspberry Pi IP address and port
+# Server IP address and port
 server_ip = '192.168.100.3'  # Replace with your server's IP address
 server_port = 8000
 
