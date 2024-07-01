@@ -19,8 +19,10 @@ class MAIN():
         self.server_socket.bind(('0.0.0.0', 8000))  # Use any available IP and port 8000
         self.server_socket.listen(0)
 
+        print("Waiting for connection...")
         # Accept a single connection and make a file-like object out of it
         self.connection = self.server_socket.accept()[0].makefile('rb')
+        print("Connection accepted")
 
         # Start the thread for receiving frames
         self.thread = threading.Thread(target=self.receive_frames)
@@ -72,20 +74,25 @@ class MAIN():
 
     def receive_frames(self):
         while self.running:
-            # Receive and decode the frame
-            image_len = np.frombuffer(self.connection.read(4), dtype=np.uint32)[0]
-            if not image_len:
-                break
-            image_data = self.connection.read(image_len)
-            frame = cv2.imdecode(np.frombuffer(image_data, dtype=np.uint8), 1)
+            try:
+                # Receive and decode the frame
+                image_len = np.frombuffer(self.connection.read(4), dtype=np.uint32)[0]
+                if not image_len:
+                    break
+                image_data = self.connection.read(image_len)
+                frame = cv2.imdecode(np.frombuffer(image_data, dtype=np.uint8), 1)
 
-            if frame is not None:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                self.ai_data = ai.pred(frame)
-                if self.ai_data:
-                    x1, y1, x2, y2, class_name = self.ai_data
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color=(255, 0, 0), thickness=2)
-                self.frame = frame
+                if frame is not None:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    self.ai_data = ai.pred(frame)
+                    if self.ai_data:
+                        x1, y1, x2, y2, class_name = self.ai_data
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), color=(255, 0, 0), thickness=2)
+                    self.frame = frame
+                else:
+                    print("Received empty frame")
+            except Exception as e:
+                print(f"Error receiving frame: {e}")
 
 if __name__ == "__main__":
     MAIN()
