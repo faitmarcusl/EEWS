@@ -57,8 +57,16 @@ def run_server():
 
 # Function to run the UI
 def run_ui():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0)  # Try other indices if 0 doesn't work
+    if not cap.isOpened():
+        print("Error: Could not open video capture.")
+        return
+
     ret, frame = cap.read()
+    if not ret:
+        print("Error: Could not read frame from video capture.")
+        return
+
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     data = frame.ravel()
     data = np.asfarray(data, dtype='f')
