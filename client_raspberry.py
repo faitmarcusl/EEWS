@@ -4,7 +4,7 @@ import numpy as np
 import time
 
 # Server IP address and port
-server_ip = '192.168.100.3'  # Replace with your server's IP address
+server_ip = 'localhost'  # Replace with your server's IP address
 server_port = 8000
 
 def connect_to_server():
