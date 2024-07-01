@@ -25,9 +25,9 @@ class ImageReceiver:
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(5)
         self.is_running = True
-        self.status("Server started. Waiting for connection...")
-
+       
         self.connect()
+        self.status("Server started. Waiting for connection...")
 
     def setup_gui(self):
         dpg.create_context()
